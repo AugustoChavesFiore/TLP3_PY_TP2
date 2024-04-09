@@ -41,11 +41,32 @@ try:
         with open(f'provincias_csv/{provincia[0]}.csv', 'w', newline='') as file:
             writer = csv.writer(file)
             writer.writerows(rows)
-        print('Se creó el archivo %s.csv' % provincia[0])
     print('Se agruparon y exportaron las localidades por provincia exitosamente.')
 except db.Error as e:
     db.rollback()
     print ('No se pudo agrupar y exportar por provincia. Error: %s' % e)
     sys.exit(1)
 db.close()
+
+try:
+    db = connect_DB()
+    cursor = db.cursor()
+    cursor.execute("SELECT DISTINCT provincia FROM localidades")
+    provincias = cursor.fetchall()
+    for provincia in provincias:
+        cursor.execute("SELECT COUNT(*) FROM localidades WHERE provincia = %s", (provincia[0],))
+        total_rows = cursor.fetchone()
+        total_rows = total_rows[0]
+        with open(f'provincias_csv/{provincia[0]}.csv', 'r') as f:
+            reader = csv.reader(f)
+            data = list(reader)
+            if len(data) == total_rows:
+                print(f'El archivo {provincia[0]}.csv tiene la misma cantidad de registros que la tabla localidades')
+            else:
+                print(f'El archivo {provincia[0]}.csv no tiene la misma cantidad de registros que la tabla localidades')
+    db.close()
+except db.Error as e:
+    db.rollback()
+    print ('No se pudo comprobar la cantidad de registros. Error: %s' % e)
+    sys.exit(1)
 
